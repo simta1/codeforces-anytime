@@ -1,7 +1,3 @@
-interface ColorStyle {
-  color: string;
-}
-
 export const ratingColors = [
   '#FF0000',
   '#FF8C00',

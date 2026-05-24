@@ -7,7 +7,6 @@ import {
   fetchOfficialRatingRecordsActions,
   fetchProfileActions,
   fetchUsersActions,
-  logoutActions,
   updateContestRecordsActions,
   updateProfileActions,
 } from '../actions';
@@ -34,13 +33,6 @@ const profileReducer = reducerWithInitialState<UserProfile>({
   .case(updateContestRecordsActions.done, (prev, payload) => ({
     ...prev,
     lastUpdateTime: payload.result.lastUpdateTime,
-  }))
-  .case(logoutActions.done, (prev, payload) => ({
-    handle: '',
-    lastUpdateTime: 0,
-    rating: 0,
-    records: [],
-    registrationTime: 0,
   }));
 
 const availableContestsResucer = reducerWithInitialState<
@@ -63,15 +55,8 @@ const isUpdatingRatingReducer = reducerWithInitialState<boolean>(false)
   .case(updateContestRecordsActions.failed, () => false);
 
 const accountReducer = reducerWithInitialState<AccountInfo>({
-  email: '',
-  id: '',
-})
-  .case(changeAccountInfo, (prev, payload) => payload)
-  .case(logoutActions.done, (prev, payload) => ({
-    checked: false,
-    email: '',
-    id: '',
-  }));
+  ready: false,
+}).case(changeAccountInfo, (prev, payload) => payload);
 
 const usersReducer = reducerWithInitialState<{ [id: string]: UserProfile }>({})
   .case(fetchUsersActions.done, (prev, payload) => payload.result)
@@ -80,9 +65,17 @@ const usersReducer = reducerWithInitialState<{ [id: string]: UserProfile }>({})
   })
   .case(addContestRecordAction, (prev, payload) => {
     const profile = prev[payload.id];
-    profile.records = [payload.record, ...profile.records];
-    profile.rating = payload.record.newRating;
-    return { ...prev, [payload.id]: profile };
+    if (!profile) {
+      return prev;
+    }
+    return {
+      ...prev,
+      [payload.id]: {
+        ...profile,
+        records: [payload.record, ...profile.records],
+        rating: payload.record.newRating,
+      },
+    };
   });
 
 const rootReducer = combineReducers<RootState>({

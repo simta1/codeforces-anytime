@@ -6,4 +6,5 @@ export default interface UserProfile {
   rating: number;
   records: ContestRecord[];
   registrationTime: number;
+  initialRatingReason?: string;
 }

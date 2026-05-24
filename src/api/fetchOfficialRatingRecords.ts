@@ -1,12 +1,11 @@
 import ContestRecord from '../types/contestRecord';
+import { fetchCodeforcesAPI } from './codeforces';
 
 export const fetchOfficialRatingRecordsAPI = async (handle: string) => {
-  const url = `https://codeforces.com/api/user.rating?handle=${handle}`;
   try {
-    const response = await fetch(url);
-    const json = await response.json();
+    const result = await fetchCodeforcesAPI<any[]>('user.rating', { handle });
     const records: ContestRecord[] = [];
-    for (const record of json?.result) {
+    for (const record of result) {
       records.push({ ...record, contestID: record.contestId });
     }
     return records;

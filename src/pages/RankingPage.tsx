@@ -1,14 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
-import {
-  Header,
-  Icon,
-  Label,
-  Loader,
-  Pagination,
-  Table,
-} from 'semantic-ui-react';
+import { Header, Icon, Loader, Pagination, Table } from 'semantic-ui-react';
 import { fetchUsers } from '../actions';
 import RatingColoredName from '../components/RatingColoredName';
 import { useUsers } from '../hooks';
@@ -24,14 +17,12 @@ const RankingPage: React.FC = () => {
     }
   }, [dispatch, users]);
 
-  // ページ遷移の管理用
   const search = useLocation().search;
   const query = new URLSearchParams(search);
   const currentPageIndex = parseInt(query.get('page') || '1');
   const currentOrderBy = query.get('orderBy') || 'rating';
   const history = useHistory();
   const handlePageChange = (pageNumber: number) => {
-    // ページ遷移時にURLのクエリパラメータを更新
     history.push(`?page=${pageNumber}&orderBy=${currentOrderBy}`);
   };
 
@@ -66,7 +57,6 @@ const RankingPage: React.FC = () => {
         }
       });
 
-    // 順位計算
     let currentRank = 0;
     let lastRating = 10000;
     let sameCount = 0;
@@ -85,7 +75,6 @@ const RankingPage: React.FC = () => {
     return userArray;
   }, [users]);
 
-  // Pagination用。【暫定】表機能をComponent化して使いまわす
   const usersPerPage = 20;
   const pages = Math.ceil(Object.keys(activeUsers).length / usersPerPage);
 
@@ -151,7 +140,6 @@ const RankingPage: React.FC = () => {
           {(() => {
             return activeUsers
               .sort((a, b) => {
-                // 設定に応じて並び替え
                 switch (currentOrderBy) {
                   case 'last-update':
                     if (a.lastUpdate !== b.lastUpdate) {
@@ -159,7 +147,6 @@ const RankingPage: React.FC = () => {
                     }
                     break;
                   case 'handle':
-                    // 名前でソート。後段で実施するので何もしない
                     break;
                   case 'match':
                     if (a.match !== b.match) {
@@ -174,7 +161,6 @@ const RankingPage: React.FC = () => {
                     break;
                 }
 
-                // 同じ値の場合は名前の若い方を返す
                 if (a.handle < b.handle) {
                   return -1;
                 } else if (a.handle === b.handle) {

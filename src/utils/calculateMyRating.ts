@@ -1,3 +1,5 @@
+import { fetchCodeforcesAPI } from '../api/codeforces';
+
 interface Contestant {
   handle: string;
   rank: number;
@@ -45,7 +47,7 @@ export const calculateMyRating = async (
   assignRanks();
   calcLoseProbabilities(); // bottle neck
   calcRatingToSeeds();
-  calcContestantSeeds(); // 少し時間かかる
+  calcContestantSeeds();
   calcBaseRatingDeltas();
   let correctedDelta = calcAllAverageRatingInc();
   correctedDelta += calcMajorAverageRatingInc();
@@ -57,15 +59,9 @@ export const calculateMyRating = async (
 };
 
 const fetchContestants = async (contestID: number) => {
-  const url = `https://codeforces.com/api/contest.ratingChanges?contestId=${contestID}`;
-  const response = await fetch(url).catch((err) => {
-    throw err;
+  const results = await fetchCodeforcesAPI<any[]>('contest.ratingChanges', {
+    contestId: contestID,
   });
-  if (!response.ok) {
-    return;
-  }
-  const json: any = await response.json();
-  const results: any[] = json.result;
 
   for (const result of results) {
     contestants.push({
@@ -160,11 +156,9 @@ const calcRatingToRank = (targetRank: number, oldRating: number): number => {
   return Math.max(bottom - baseRating, 1);
 };
 
-// ある順位に対し，補正込みのレート変動が0となるレートをパフォーマンスと定義する
 const calcPerformance = (rank: number, correctedDelta: number) => {
   let bottom = 0;
   let top = ratingRange + 1;
-  // レート変動が-correctedDelta以上となる最大のレートを求める
   while (bottom + 1.1 < top) {
     const mid = Math.trunc((bottom + top) / 2);
     const rating = mid - baseRating;

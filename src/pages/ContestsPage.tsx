@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { Header, Icon, Loader, Pagination, Table } from 'semantic-ui-react';
@@ -33,17 +33,14 @@ const ContestsPage: React.FC = () => {
     officialRanks[record.contestID] = record.rank;
   }
 
-  // ページ遷移の管理用
   const search = useLocation().search;
   const query = new URLSearchParams(search);
   const currentPageIndex = parseInt(query.get('page') || '1');
   const history = useHistory();
   const handlePageChange = (pageNumber: number) => {
-    // ページ遷移時にURLのクエリパラメータを更新
     history.push(`?page=${pageNumber}`);
   };
 
-  // Pagination用。【暫定】表機能をComponent化して使いまわす
   const contestsPerPage = 20;
   const pages = Math.ceil(availableContests.length / contestsPerPage);
 
@@ -54,10 +51,10 @@ const ContestsPage: React.FC = () => {
   }, [dispatch, availableContests]);
 
   useEffect(() => {
-    if (!account.id) {
+    if (!account.ready) {
       return;
     }
-    dispatch(fetchProfile(account.id));
+    dispatch(fetchProfile());
   }, [dispatch, account]);
 
   useEffect(() => {

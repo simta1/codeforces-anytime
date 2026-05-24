@@ -1,7 +1,6 @@
-import { createBrowserHistory } from 'history';
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { BrowserRouter as Router, Route, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Route, useLocation } from 'react-router-dom';
 import { applyMiddleware, createStore } from 'redux';
 import thunk from 'redux-thunk';
 import PageWrapper from './components/PageWrapper';
@@ -11,10 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import RankingPage from './pages/RankingPage';
 import StartPage from './pages/StartPage';
 import UpdateProfilePage from './pages/UpdateProfilePage';
-import trackID from './ga/config';
 import rootReducer from './reducers';
-import { Helmet } from 'react-helmet';
-import { sendPageView } from './utils/analytics';
 
 const store = createStore(rootReducer, applyMiddleware(thunk));
 
@@ -22,7 +18,9 @@ function RouteTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    sendPageView(location.pathname);
+    document.title = `Codeforces Anytime${
+      location.pathname === '/' ? '' : ` ${location.pathname}`
+    }`;
   }, [location]);
 
   return null;
@@ -31,19 +29,6 @@ function RouteTracker() {
 const App: React.FC = () => {
   return (
     <div>
-      <Helmet>
-        <script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${trackID}`}
-        ></script>
-        <script>
-          {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-                          `}
-        </script>
-      </Helmet>
       <Provider store={store}>
         <Router>
           <RouteTracker />

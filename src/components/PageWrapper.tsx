@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { Button, Container, Divider, Menu, Segment } from 'semantic-ui-react';
-import { changeAccountInfo, logout } from '../actions';
-import firebase from '../firebase';
+import { changeAccountInfo } from '../actions';
+import { getActiveHandle } from '../api/userProfile';
 import { useAccountInfo } from '../hooks';
 
 const PageWrapper: React.FC<{ children: any }> = ({ children }) => {
@@ -18,15 +18,7 @@ const PageWrapper: React.FC<{ children: any }> = ({ children }) => {
   }, [location]);
 
   useEffect(() => {
-    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-      if (user === null || user.email === null) {
-        return;
-      }
-      dispatch(changeAccountInfo({ email: user.email, id: user.uid }));
-    });
-    return () => {
-      unsubscribe();
-    };
+    dispatch(changeAccountInfo({ ready: true }));
   }, [dispatch, history]);
 
   return (
@@ -61,23 +53,24 @@ const PageWrapper: React.FC<{ children: any }> = ({ children }) => {
           Ranking
         </Menu.Item>
         {(() => {
-          if (account.id) {
+          if (account.ready) {
             return (
               <>
                 <Menu.Item
                   position="right"
                   onClick={() => {
-                    history.push(`/users/${account.id}`);
+                    const handle = getActiveHandle();
+                    history.push(handle ? `/users/${handle}` : '/');
                   }}
                 >
                   Profile
                 </Menu.Item>
                 <Menu.Item
                   onClick={() => {
-                    dispatch(logout());
+                    history.push('/profile/update');
                   }}
                 >
-                  Logout
+                  Settings
                 </Menu.Item>
               </>
             );

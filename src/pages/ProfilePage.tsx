@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link, useHistory, useLocation, useParams } from 'react-router-dom';
 import {
@@ -13,6 +13,7 @@ import {
 import {
   Button,
   Container,
+  Dimmer,
   Grid,
   Header,
   Icon,
@@ -43,36 +44,41 @@ const ProfilePage: React.FC = () => {
   const history = useHistory();
   const urlParams = useParams<{ id: string }>();
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
 
   const dispatch = useDispatch();
   const account = useAccountInfo();
   const users = useUsers();
   const profile = useProfile();
   const isUpdatingRating = useIsUpdatingRating();
+  const isUpdatingRatingRef = useRef(isUpdatingRating);
 
   const [certIdx, setCertIdx] = useState(-1);
-  const [isEnglish, setIsEnglish] = useState(false);
+  const isActiveProfile =
+    profile.handle.toLowerCase() === urlParams.id.toLowerCase();
+  const matchingUserID = Object.keys(users).find(
+    (id) => id.toLowerCase() === urlParams.id.toLowerCase()
+  );
 
   useEffect(() => {
-    if (queryParams.get('cert')) {
-      setCertIdx(Number(queryParams.get('cert')));
-    }
-    if (queryParams.get('lang')) {
-      setIsEnglish(queryParams.get('lang') === 'en');
-    }
-  }, []);
+    isUpdatingRatingRef.current = isUpdatingRating;
+  }, [isUpdatingRating]);
 
   useEffect(() => {
-    if (!account.id || account.id !== urlParams.id) {
+    const cert = new URLSearchParams(location.search).get('cert');
+    if (cert) {
+      setCertIdx(Number(cert));
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!account.ready) {
       return;
     }
 
     dispatch(
       fetchProfile(
-        account.id,
         () => {
-          if (!isUpdatingRating) {
+          if (!isUpdatingRatingRef.current) {
             dispatch(updateContestRecords());
           }
         },
@@ -84,11 +90,14 @@ const ProfilePage: React.FC = () => {
   }, [dispatch, account, history, urlParams.id]);
 
   useEffect(() => {
-    if (Object.keys(users).length === 0) {
+    if (!matchingUserID) {
       dispatch(
         fetchUsers(
           (currentUsers: { [id: string]: UserProfile }) => {
-            if (!currentUsers[urlParams.id]) {
+            const hasMatchingUser = Object.keys(currentUsers).some(
+              (id) => id.toLowerCase() === urlParams.id.toLowerCase()
+            );
+            if (!hasMatchingUser) {
               history.push('/');
             }
           },
@@ -98,14 +107,14 @@ const ProfilePage: React.FC = () => {
         )
       );
     }
-  }, [dispatch, history, urlParams.id]);
+  }, [dispatch, history, matchingUserID, urlParams.id]);
 
-  if (!users[urlParams.id]) {
+  if (!matchingUserID && !isActiveProfile) {
     return null;
   }
 
-  let userInfo = users[urlParams.id];
-  if (profile.records.length > 0 && account?.id === urlParams.id) {
+  let userInfo = matchingUserID ? users[matchingUserID] : profile;
+  if (profile.records.length > 0 && isActiveProfile) {
     userInfo = profile;
   }
 
@@ -139,7 +148,11 @@ const ProfilePage: React.FC = () => {
 
   return (
     <>
-      <Loader inverted={true} active={isUpdatingRating} />
+      <Dimmer active={isUpdatingRating} inverted={true} page={true}>
+        <Loader active={true} size="large">
+          Loading virtual contest records...
+        </Loader>
+      </Dimmer>
       <Header as="h2">
         <RatingColoredName name={userInfo.handle} rating={userInfo.rating} />
         &nbsp;
@@ -153,7 +166,7 @@ const ProfilePage: React.FC = () => {
         </a>
       </Header>
       {(() => {
-        if (account?.id === urlParams.id) {
+        if (isActiveProfile) {
           return (
             <Link to="/profile/update">
               <Button
@@ -288,40 +301,13 @@ const ProfilePage: React.FC = () => {
           <>
             <Modal.Header>
               <Icon name="certificate" color="yellow" />
-              {isEnglish ? <>Contest Result</> : <>コンテスト成績表</>}
-              <Button.Group floated="right">
-                <Button
-                  compact={true}
-                  positive={!isEnglish}
-                  onClick={() => {
-                    if (isEnglish) {
-                      setIsEnglish(false);
-                    }
-                  }}
-                >
-                  JP
-                </Button>
-                <Button.Or />
-                <Button
-                  compact={true}
-                  positive={isEnglish}
-                  onClick={() => {
-                    if (!isEnglish) {
-                      setIsEnglish(true);
-                    }
-                  }}
-                >
-                  EN
-                </Button>
-              </Button.Group>
+              Contest Result
             </Modal.Header>
             <Modal.Content>
               <Container text={true}>
                 <Grid style={{ fontWeight: 'bold' }}>
                   <Grid.Row>
-                    <Grid.Column width={4}>
-                      {isEnglish ? <>User</> : <>ユーザー</>}
-                    </Grid.Column>
+                    <Grid.Column width={4}>User</Grid.Column>
                     <Grid.Column width={12}>
                       <span style={getRatingColorStyle(certificate.newRating)}>
                         {userInfo.handle}
@@ -329,23 +315,17 @@ const ProfilePage: React.FC = () => {
                     </Grid.Column>
                   </Grid.Row>
                   <Grid.Row>
-                    <Grid.Column width={4}>
-                      {isEnglish ? <>Contest</> : <>コンテスト</>}
-                    </Grid.Column>
+                    <Grid.Column width={4}>Contest</Grid.Column>
                     <Grid.Column width={12}>
                       {certificate.contestName}
                     </Grid.Column>
                   </Grid.Row>
                   <Grid.Row>
-                    <Grid.Column width={4}>
-                      {isEnglish ? <>Rank</> : <>順位</>}
-                    </Grid.Column>
+                    <Grid.Column width={4}>Rank</Grid.Column>
                     <Grid.Column>{certificate.rankString}</Grid.Column>
                   </Grid.Row>
                   <Grid.Row>
-                    <Grid.Column width={4}>
-                      {isEnglish ? <>Performance</> : <>パフォーマンス</>}
-                    </Grid.Column>
+                    <Grid.Column width={4}>Performance</Grid.Column>
                     <Grid.Column>
                       <span
                         style={getRatingColorStyle(certificate.performance)}
@@ -355,9 +335,7 @@ const ProfilePage: React.FC = () => {
                     </Grid.Column>
                   </Grid.Row>
                   <Grid.Row>
-                    <Grid.Column width={4}>
-                      {isEnglish ? <>Rating change</> : <>レート変動</>}
-                    </Grid.Column>
+                    <Grid.Column width={4}>Rating change</Grid.Column>
                     <Grid.Column width={12}>
                       <span style={getRatingColorStyle(certificate.oldRating)}>
                         {certificate.oldRating}
@@ -383,16 +361,11 @@ const ProfilePage: React.FC = () => {
                 icon="twitter"
                 as="a"
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  getTwitterMessage(
-                    urlParams.id,
-                    certificate,
-                    certIdx,
-                    isEnglish
-                  )
+                  getTwitterMessage(urlParams.id, certificate, certIdx)
                 )}`}
                 target="_blank"
               />
-              <Button content="閉じる" onClick={() => setCertIdx(-1)} />
+              <Button content="Close" onClick={() => setCertIdx(-1)} />
             </Modal.Actions>
           </>
         ) : null}
