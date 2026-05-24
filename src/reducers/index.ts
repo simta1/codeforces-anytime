@@ -3,6 +3,7 @@ import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import {
   addContestRecordAction,
   changeAccountInfo,
+  changeRatingUpdateMessage,
   fetchAvailableContestInfoActions,
   fetchOfficialRatingRecordsActions,
   fetchProfileActions,
@@ -80,6 +81,11 @@ const isUpdatingRatingReducer = reducerWithInitialState<boolean>(false)
   .case(updateContestRecordsActions.done, () => false)
   .case(updateContestRecordsActions.failed, () => false);
 
+const ratingUpdateMessageReducer = reducerWithInitialState<string>('').case(
+  changeRatingUpdateMessage,
+  (prev, payload) => payload
+);
+
 const accountReducer = reducerWithInitialState<AccountInfo>({
   ready: false,
 }).case(changeAccountInfo, (prev, payload) => payload);
@@ -109,6 +115,7 @@ const rootReducer = combineReducers<RootState>({
   availableContests: availableContestsResucer,
   officialRatingRecords: officialRatingRecordsReducer,
   isUpdatingRating: isUpdatingRatingReducer,
+  ratingUpdateMessage: ratingUpdateMessageReducer,
   users: usersReducer,
   account: accountReducer,
 });

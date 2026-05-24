@@ -26,6 +26,7 @@ const UpdateProfilePage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [handleValidity, setHandleValidity] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   useEffect(() => {
     if (profile.handle) {
@@ -46,8 +47,15 @@ const UpdateProfilePage: React.FC = () => {
     }
 
     setIsLoading(true);
-    const nextProfile = await createInitialProfile(handle).catch(() => null);
+    setLoadingMessage('Starting profile setup...');
+    const nextProfile = await createInitialProfile(handle, setLoadingMessage)
+      .then((createdProfile) => {
+        setLoadingMessage('Done.');
+        return createdProfile;
+      })
+      .catch(() => null);
     setIsLoading(false);
+    setLoadingMessage('');
     if (!nextProfile) {
       setHandleValidity(false);
       return;
@@ -99,7 +107,6 @@ const UpdateProfilePage: React.FC = () => {
           value={handle}
           onChange={(e) => setHandle(e.target.value)}
         />
-        <Loader active={isLoading} />
         <Form.Button color="green" onClick={() => onButtonClick()}>
           OK
         </Form.Button>
@@ -151,7 +158,9 @@ const UpdateProfilePage: React.FC = () => {
           </Modal.Actions>
         </Modal>
         <Dimmer active={isLoading} inverted={true}>
-          <Loader active={true} inline="centered" />
+          <Loader active={true} inline="centered">
+            {loadingMessage || 'Loading...'}
+          </Loader>
         </Dimmer>
       </Form>
     </>

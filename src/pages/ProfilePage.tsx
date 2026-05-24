@@ -28,6 +28,7 @@ import {
   useAccountInfo,
   useIsUpdatingRating,
   useProfile,
+  useRatingUpdateMessage,
   useUsers,
 } from '../hooks';
 import UserProfile from '../types/userProfile';
@@ -50,6 +51,7 @@ const ProfilePage: React.FC = () => {
   const users = useUsers();
   const profile = useProfile();
   const isUpdatingRating = useIsUpdatingRating();
+  const ratingUpdateMessage = useRatingUpdateMessage();
   const isUpdatingRatingRef = useRef(isUpdatingRating);
 
   const [certIdx, setCertIdx] = useState(-1);
@@ -145,7 +147,7 @@ const ProfilePage: React.FC = () => {
     <>
       <Dimmer active={isUpdatingRating} inverted={true} page={true}>
         <Loader active={true} size="large">
-          Loading virtual contest records...
+          {ratingUpdateMessage || 'Loading virtual contest records...'}
         </Loader>
       </Dimmer>
       <Header as="h2">

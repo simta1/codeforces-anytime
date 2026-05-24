@@ -63,6 +63,10 @@ export const addContestRecordAction = actionCreator<{
   record: ContestRecord;
 }>('AddContestRecord');
 
+export const changeRatingUpdateMessage = actionCreator<string>(
+  'ChangeRatingUpdateMessage'
+);
+
 export const updateContestRecords =
   (onStart?: () => void, onDone?: () => void, onFailed?: () => void) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
@@ -73,6 +77,7 @@ export const updateContestRecords =
     if (onStart) {
       onStart();
     }
+    dispatch(changeRatingUpdateMessage('Loading supported contest list...'));
     const { handle, lastUpdateTime } = getState().profile;
     let oldRating = getState().profile.rating;
     let records = getState().profile.records;
@@ -81,9 +86,28 @@ export const updateContestRecords =
       const supportedContestIDs = new Set(
         (await fetchAvailableContestInfoAPI()).map((contest) => contest.id)
       );
-      const contests = await getParticipateVirtuals(handle, lastUpdateTime);
+      const contests = await getParticipateVirtuals(
+        handle,
+        lastUpdateTime,
+        ({ loadedSubmissions, oldestSubmissionTime }) => {
+          const oldestText = oldestSubmissionTime
+            ? `, reached ${new Date(oldestSubmissionTime * 1000)
+                .toISOString()
+                .slice(0, 10)}`
+            : '';
+          dispatch(
+            changeRatingUpdateMessage(
+              `Loading virtual contest submissions... ${loadedSubmissions} loaded${oldestText}`
+            )
+          );
+        }
+      );
       const nowTime = Math.floor(new Date().getTime() / 1000);
       let updateTime = lastUpdateTime;
+      let processedContestCount = 0;
+      const totalContestCount = contests.filter((contest) =>
+        supportedContestIDs.has(contest.id)
+      ).length;
       for (const contest of contests) {
         if (!supportedContestIDs.has(contest.id)) {
           continue;
@@ -106,6 +130,12 @@ export const updateContestRecords =
               nowTime,
               submissions: contest.submissions,
             });
+          processedContestCount++;
+          dispatch(
+            changeRatingUpdateMessage(
+              `Calculating rating for ${contestName} (${processedContestCount}/${totalContestCount})...`
+            )
+          );
           const { nextRating, performance } = await calculateMyRating({
             contestID: contest.id,
             handle,
@@ -153,6 +183,7 @@ export const updateContestRecords =
           result: { lastUpdateTime: updateTime },
         })
       );
+      dispatch(changeRatingUpdateMessage(''));
       if (onDone) {
         onDone();
       }
@@ -163,6 +194,7 @@ export const updateContestRecords =
           error: { value: e },
         })
       );
+      dispatch(changeRatingUpdateMessage(''));
       if (onFailed) {
         onFailed();
       }

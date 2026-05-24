@@ -20,6 +20,8 @@ export interface RemoveSavedProfileResult {
   activeHandle: string;
 }
 
+export type ProfileCreationProgress = (message: string) => void;
+
 const dateStringFromSeconds = (time: number) =>
   new Date(time * 1000).toISOString().slice(0, 10);
 
@@ -119,9 +121,23 @@ export const removeSavedProfileAPI = (
 
 const getInitialRatingData = async (
   handle: string,
-  registrationTime: number
+  registrationTime: number,
+  onProgress?: ProfileCreationProgress
 ): Promise<InitialRatingData> => {
-  const virtuals = await getParticipateVirtuals(handle, registrationTime);
+  onProgress?.('Loading virtual contest submissions...');
+  const virtuals = await getParticipateVirtuals(
+    handle,
+    registrationTime,
+    ({ loadedSubmissions, oldestSubmissionTime }) => {
+      const oldestText = oldestSubmissionTime
+        ? `, reached ${dateStringFromSeconds(oldestSubmissionTime)}`
+        : '';
+      onProgress?.(
+        `Loading virtual contest submissions... ${loadedSubmissions} loaded${oldestText}`
+      );
+    }
+  );
+  onProgress?.('Loading supported contest list...');
   const supportedContests = await fetchAvailableContestInfoAPI();
   const supportedContestByID = new Map(
     supportedContests.map((contest) => [contest.id, contest])
@@ -138,6 +154,7 @@ const getInitialRatingData = async (
     };
   }
 
+  onProgress?.('Loading official rating history...');
   const firstVirtualStartTime = firstSupportedVirtual.startTimeSeconds;
   const firstVirtualContest = supportedContestByID.get(
     firstSupportedVirtual.id
@@ -177,8 +194,10 @@ const getInitialRatingData = async (
 };
 
 export const createInitialProfile = async (
-  handle: string
+  handle: string,
+  onProgress?: ProfileCreationProgress
 ): Promise<UserProfile> => {
+  onProgress?.('Checking Codeforces handle...');
   const user = await fetchUserInfo(handle);
   if (!user) {
     throw new Error('Invalid handle');
@@ -186,9 +205,11 @@ export const createInitialProfile = async (
   const registrationTime = user.registrationTimeSeconds || 0;
   const { rating, startTime, reason } = await getInitialRatingData(
     user.handle,
-    registrationTime
+    registrationTime,
+    onProgress
   );
 
+  onProgress?.('Preparing local profile...');
   return {
     handle: user.handle,
     lastUpdateTime: startTime,

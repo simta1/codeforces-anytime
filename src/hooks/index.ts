@@ -25,6 +25,10 @@ export const useIsUpdatingRating = (): boolean => {
   return useSelector((state: RootState) => state.isUpdatingRating);
 };
 
+export const useRatingUpdateMessage = (): string => {
+  return useSelector((state: RootState) => state.ratingUpdateMessage);
+};
+
 export const useUsers = (): { [id: string]: UserProfile } => {
   return useSelector((state: RootState) => state.users);
 };

@@ -26,11 +26,21 @@ export interface ContestInfo {
   submissions: Submission[];
 }
 
+export interface SubmissionFetchProgress {
+  loadedSubmissions: number;
+  oldestSubmissionTime?: number;
+}
+
 export const getParticipateVirtuals = async (
   handle: string,
-  lastUpdateTime: number
+  lastUpdateTime: number,
+  onProgress?: (progress: SubmissionFetchProgress) => void
 ): Promise<ContestInfo[]> => {
-  const submissions = await fetchRecentSubmissions(handle, lastUpdateTime);
+  const submissions = await fetchRecentSubmissions(
+    handle,
+    lastUpdateTime,
+    onProgress
+  );
   const contestByKey = new Map<string, ContestInfo>();
   const virtuals = new Array<ContestInfo>();
   for (const submission of submissions) {
@@ -59,7 +69,8 @@ export const getParticipateVirtuals = async (
 
 const fetchRecentSubmissions = async (
   handle: string,
-  lastUpdateTime: number
+  lastUpdateTime: number,
+  onProgress?: (progress: SubmissionFetchProgress) => void
 ) => {
   const pageSize = 100;
   const submissions = new Array<Submission>();
@@ -72,6 +83,16 @@ const fetchRecentSubmissions = async (
       count: pageSize,
     });
     submissions.push(...page);
+    const oldestSubmissionTime =
+      page.length > 0
+        ? Math.min(
+            ...page.map((submission) => submission.creationTimeSeconds || 0)
+          )
+        : undefined;
+    onProgress?.({
+      loadedSubmissions: submissions.length,
+      oldestSubmissionTime,
+    });
 
     if (
       page.length < pageSize ||
