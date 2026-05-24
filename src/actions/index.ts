@@ -98,17 +98,18 @@ export const updateContestRecords =
           continue;
         }
         try {
-          const { contestName, myRank, endTime } = await calculateVirtualRank({
-            contestID: contest.id,
-            handle,
-            startTime: contest.startTimeSeconds,
-            nowTime,
-            submissions: contest.submissions,
-          });
+          const { contestName, myRank, ratingRank, endTime } =
+            await calculateVirtualRank({
+              contestID: contest.id,
+              handle,
+              startTime: contest.startTimeSeconds,
+              nowTime,
+              submissions: contest.submissions,
+            });
           const { nextRating, performance } = await calculateMyRating({
             contestID: contest.id,
             handle,
-            rank: myRank,
+            rank: ratingRank,
             rating: oldRating,
           }).catch((e) => {
             return { nextRating: null, performance: null };

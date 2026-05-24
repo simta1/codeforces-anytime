@@ -1,4 +1,4 @@
-import { fetchCodeforcesAPI } from '../api/codeforces';
+import { fetchContestRatingChangesAPI } from '../api/fetchContestRatingChanges';
 
 interface Contestant {
   handle: string;
@@ -59,9 +59,7 @@ export const calculateMyRating = async (
 };
 
 const fetchContestants = async (contestID: number) => {
-  const results = await fetchCodeforcesAPI<any[]>('contest.ratingChanges', {
-    contestId: contestID,
-  });
+  const results = await fetchContestRatingChangesAPI(contestID);
 
   for (const result of results) {
     contestants.push({

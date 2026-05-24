@@ -1,4 +1,5 @@
 import { fetchCodeforcesAPI } from '../api/codeforces';
+import { fetchContestRatingChangesAPI } from '../api/fetchContestRatingChanges';
 import { Submission } from './getParticipateVirtuals';
 
 interface Result {
@@ -28,7 +29,12 @@ export const calculateVirtualRank = async (data: {
   startTime: number;
   nowTime: number;
   submissions: Submission[];
-}): Promise<{ contestName: string; myRank: number; endTime: number }> => {
+}): Promise<{
+  contestName: string;
+  myRank: number;
+  ratingRank: number;
+  endTime: number;
+}> => {
   const { contestID, startTime, nowTime, submissions } = data;
   try {
     const result = await fetchCodeforcesAPI<Result>('contest.standings', {
@@ -47,7 +53,14 @@ export const calculateVirtualRank = async (data: {
       submissions,
     });
 
-    let cnt = 0;
+    const ratingChanges = await fetchContestRatingChangesAPI(contestID);
+    const ratedRankByHandle = new Map(
+      ratingChanges.map((change) => [change.handle.toLowerCase(), change.rank])
+    );
+
+    let publicBetterCount = 0;
+    let visibleRatedBetterCount = 0;
+    let ratingRank = ratingChanges.length + 1;
     for (const user of result.rows) {
       if (user.rank === 0) {
         break;
@@ -57,13 +70,29 @@ export const calculateVirtualRank = async (data: {
         continue;
       }
 
+      const ratedRanks = party.members
+        .map((member) => ratedRankByHandle.get(member.handle.toLowerCase()))
+        .filter((rank): rank is number => rank !== undefined);
+      const isRated = ratedRanks.length > 0;
       if (isBetter(user, myScore, result.contest.type)) {
-        cnt += party.members.length;
+        publicBetterCount += party.members.length;
+        if (isRated) {
+          visibleRatedBetterCount += ratedRanks.length;
+        }
+      } else if (isRated) {
+        ratingRank = Math.min(ratingRank, ...ratedRanks);
       }
     }
+
+    const inferredHiddenRatedBetterCount = Math.max(
+      0,
+      ratingRank - visibleRatedBetterCount - 1
+    );
+
     return {
       contestName,
-      myRank: cnt + 1,
+      myRank: publicBetterCount + inferredHiddenRatedBetterCount + 1,
+      ratingRank,
       endTime: startTime + durationSeconds,
     };
   } catch (e) {
