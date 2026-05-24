@@ -3,10 +3,7 @@ import actionCreatorFactory from 'typescript-fsa';
 import { fetchAvailableContestInfoAPI } from '../api/availableContestInfo';
 import { fetchOfficialRatingRecordsAPI } from '../api/fetchOfficialRatingRecords';
 import { fetchUsersAPI } from '../api/fetchUsers';
-import {
-  fetchProfileAPI,
-  saveProfileAPI,
-} from '../api/userProfile';
+import { fetchProfileAPI, saveProfileAPI } from '../api/userProfile';
 import AccountInfo from '../types/accountInfo';
 import AvailableContestInfo from '../types/availableContestInfo';
 import ContestRecord from '../types/contestRecord';
@@ -69,6 +66,9 @@ export const addContestRecordAction = actionCreator<{
 export const updateContestRecords =
   (onStart?: () => void, onDone?: () => void, onFailed?: () => void) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
+    if (getState().isUpdatingRating) {
+      return;
+    }
     dispatch(updateContestRecordsActions.started(false));
     if (onStart) {
       onStart();

@@ -16,6 +16,29 @@ import ContestRecord from '../types/contestRecord';
 import RootState from '../types/rootState';
 import UserProfile from '../types/userProfile';
 
+const contestRecordKey = (record: ContestRecord) =>
+  `${record.contestID}:${record.startTime}`;
+
+const addContestRecord = (records: ContestRecord[], record: ContestRecord) => {
+  if (
+    records.some((item) => contestRecordKey(item) === contestRecordKey(record))
+  ) {
+    return records;
+  }
+  return [record, ...records].sort((a, b) => {
+    if (a.startTime !== b.startTime) {
+      return b.startTime - a.startTime;
+    }
+    if (a.contestID === 0 && b.contestID !== 0) {
+      return 1;
+    }
+    if (b.contestID === 0 && a.contestID !== 0) {
+      return -1;
+    }
+    return b.contestID - a.contestID;
+  });
+};
+
 const profileReducer = reducerWithInitialState<UserProfile>({
   handle: '',
   lastUpdateTime: 0,
@@ -26,7 +49,10 @@ const profileReducer = reducerWithInitialState<UserProfile>({
   .case(updateProfileActions.done, (prev, payload) => payload.result)
   .case(fetchProfileActions.done, (prev, payload) => payload.result)
   .case(addContestRecordAction, (prev, payload) => {
-    const records = [payload.record, ...prev.records];
+    if (prev.handle.toLowerCase() !== payload.id.toLowerCase()) {
+      return prev;
+    }
+    const records = addContestRecord(prev.records, payload.record);
     const rating = payload.record.newRating;
     return { ...prev, rating, records };
   })
@@ -72,7 +98,7 @@ const usersReducer = reducerWithInitialState<{ [id: string]: UserProfile }>({})
       ...prev,
       [payload.id]: {
         ...profile,
-        records: [payload.record, ...profile.records],
+        records: addContestRecord(profile.records, payload.record),
         rating: payload.record.newRating,
       },
     };

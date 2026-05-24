@@ -136,11 +136,6 @@ const ProfilePage: React.FC = () => {
     })
     .reverse();
 
-  const nameFromTime: { [time: number]: string } = {};
-  userInfo.records.forEach((record) => {
-    nameFromTime[record.startTime] = record.contestName;
-  });
-
   const xTick = calculateTimeTick(
     data[0].time - 1000000,
     data[data.length - 1].time + 1000000
@@ -220,10 +215,11 @@ const ProfilePage: React.FC = () => {
               }
               const time: number = labels.payload[0].value;
               const rating: number = labels.payload[1].value;
+              const name: string = labels.payload[0].payload.name;
               return (
                 <Segment>
                   <Header as="h4" dividing={true}>
-                    {nameFromTime[time]}
+                    {name}
                   </Header>
                   <div>{dateAndTimeStringFromSeconds(time)}</div>
                   <div>
@@ -255,7 +251,7 @@ const ProfilePage: React.FC = () => {
             const cert = getCertificate(userInfo, idx);
 
             return (
-              <Table.Row key={record.startTime}>
+              <Table.Row key={`${record.contestID}:${record.startTime}`}>
                 <Table.Cell>
                   {dateAndTimeStringFromSeconds(record.startTime)}
                 </Table.Cell>
