@@ -1,5 +1,7 @@
 import ContestCertificate from '../types/contestCertificate';
 
+const baseURL = 'https://simta1.github.io/codeforces-anytime/#';
+
 export const getTwitterMessage = (
   id: string,
   certificate: ContestCertificate,
@@ -8,7 +10,7 @@ export const getTwitterMessage = (
   if (idx === 0) {
     return `${certificate.handle} registered with Codeforces Anytime!
 #CodeforcesAnytime
-https://codeforces-anytime.sonoapp.page/users/${id}`;
+${baseURL}/users/${id}`;
   } else {
     return `[VIRTUAL PARTICIPATION]
 ${certificate.handle} took ${certificate.rankString} place in ${
@@ -24,6 +26,6 @@ Updated highest rating!`
         : ''
     }
 #CodeforcesAnytime
-https://codeforces-anytime.sonoapp.page/users/${id}?cert=${idx}`;
+${baseURL}/users/${id}?cert=${idx}`;
   }
 };
