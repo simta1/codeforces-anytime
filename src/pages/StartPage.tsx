@@ -74,6 +74,10 @@ const StartPage: React.FC = () => {
           virtual contest.
         </List.Item>
         <List.Item>Open your profile to update the local rating.</List.Item>
+        <List.Item>
+          Saved profiles are stored in this browser's localStorage, so another
+          browser or device needs to fetch and calculate the records again.
+        </List.Item>
       </List>
       {!selectedHandle && isHandleLoaded ? (
         <Message

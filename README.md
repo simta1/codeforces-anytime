@@ -2,18 +2,6 @@
 
 Codeforces Anytime reads your Codeforces virtual contest history and plots a local rating graph in your browser.
 
-## Usage
-
-1. Open https://simta1.github.io/codeforces-anytime/#/ in your browser.
-2. Click `Add handle`.
-3. Enter your Codeforces handle.
-4. Open your profile page.
-5. Wait for the app to load and calculate your virtual contest records.
-
-> [!NOTE]
-> The first calculation may take a while. Later visits reuse saved local data and only add newly detected virtual contests.
-> You can save multiple handles in the same browser and switch between them from the start page.
-
 ## Rating Calculation
 
 - If virtual contest history exists, the initial local rating is your official Codeforces rating just before your first virtual contest.
