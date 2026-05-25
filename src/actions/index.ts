@@ -122,6 +122,10 @@ export const updateContestRecords =
           continue;
         }
         try {
+          const contestProgressPrefix = `Preparing virtual rank for contest ${
+            contest.id
+          } (${processedContestCount + 1}/${totalContestCount})...`;
+          dispatch(changeRatingUpdateMessage(contestProgressPrefix));
           const { contestName, myRank, ratingRank, endTime } =
             await calculateVirtualRank({
               contestID: contest.id,
@@ -129,6 +133,13 @@ export const updateContestRecords =
               startTime: contest.startTimeSeconds,
               nowTime,
               submissions: contest.submissions,
+              onProgress: (message) => {
+                dispatch(
+                  changeRatingUpdateMessage(
+                    `${contestProgressPrefix} ${message}`
+                  )
+                );
+              },
             });
           processedContestCount++;
           const ratingProgressPrefix = `Calculating rating for ${contestName} (${processedContestCount}/${totalContestCount})...`;
@@ -149,9 +160,19 @@ export const updateContestRecords =
             return { nextRating: null, performance: null };
           });
           if (nextRating == null || performance == null) {
+            dispatch(
+              changeRatingUpdateMessage(
+                `Skipped ${contestName} (${processedContestCount}/${totalContestCount}) because rating could not be calculated. Moving to the next contest...`
+              )
+            );
             continue;
           }
 
+          dispatch(
+            changeRatingUpdateMessage(
+              `Saving rating result for ${contestName} (${processedContestCount}/${totalContestCount})...`
+            )
+          );
           const newRecord = {
             contestID: contest.id,
             startTime: contest.startTimeSeconds,
@@ -173,11 +194,24 @@ export const updateContestRecords =
           await saveProfileAPI(profile);
           dispatch(addContestRecordAction({ id: handle, record: newRecord }));
           oldRating = nextRating;
+          dispatch(
+            changeRatingUpdateMessage(
+              `Finished ${contestName} (${processedContestCount}/${totalContestCount}). Moving to the next contest...`
+            )
+          );
         } catch (e) {
+          dispatch(
+            changeRatingUpdateMessage(
+              `Skipped contest ${contest.id} (${
+                processedContestCount + 1
+              }/${totalContestCount}) because contest data could not be loaded. Moving to the next contest...`
+            )
+          );
           continue;
         }
       }
       if (updateTime !== profile.lastUpdateTime) {
+        dispatch(changeRatingUpdateMessage('Saving profile update time...'));
         profile = { ...profile, lastUpdateTime: updateTime };
         await saveProfileAPI(profile);
       }

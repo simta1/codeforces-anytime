@@ -69,7 +69,11 @@ export const calculateMyRating = async (
 
   onProgress?.('Calculating performance...');
   await yieldToBrowser();
-  const performance = calcPerformance(contestants[index].rank, correctedDelta);
+  const performance = await calcPerformance(
+    contestants[index].rank,
+    correctedDelta,
+    onProgress
+  );
   const nextRating =
     contestants[index].oldRating + contestants[index].calcedDelta;
   return { nextRating, performance };
@@ -194,10 +198,17 @@ const calcRatingToRank = (targetRank: number, oldRating: number): number => {
   return Math.max(bottom - baseRating, 1);
 };
 
-const calcPerformance = (rank: number, correctedDelta: number) => {
+const calcPerformance = async (
+  rank: number,
+  correctedDelta: number,
+  onProgress?: ProgressCallback
+) => {
   let bottom = 0;
   let top = ratingRange + 1;
+  let step = 0;
   while (bottom + 1.1 < top) {
+    onProgress?.(`Calculating performance... step ${step + 1}`);
+    await yieldToBrowser();
     const mid = Math.trunc((bottom + top) / 2);
     const rating = mid - baseRating;
     const seed = ratingToSeeds[mid];
@@ -210,6 +221,7 @@ const calcPerformance = (rank: number, correctedDelta: number) => {
     } else {
       bottom = mid;
     }
+    step++;
   }
   return bottom - baseRating;
 };

@@ -29,14 +29,16 @@ export const calculateVirtualRank = async (data: {
   startTime: number;
   nowTime: number;
   submissions: Submission[];
+  onProgress?: (message: string) => void;
 }): Promise<{
   contestName: string;
   myRank: number;
   ratingRank: number;
   endTime: number;
 }> => {
-  const { contestID, startTime, nowTime, submissions } = data;
+  const { contestID, startTime, nowTime, submissions, onProgress } = data;
   try {
+    onProgress?.(`Loading contest data...`);
     const result = await fetchCodeforcesAPI<Result>('contest.standings', {
       contestId: contestID,
     });
@@ -46,6 +48,7 @@ export const calculateVirtualRank = async (data: {
       throw new Error('Not finished');
     }
 
+    onProgress?.(`Reconstructing virtual score for ${contestName}...`);
     const myScore = calculateVirtualScore({
       contestType: result.contest.type,
       durationSeconds,
@@ -53,7 +56,9 @@ export const calculateVirtualRank = async (data: {
       submissions,
     });
 
+    onProgress?.('Loading rating data...');
     const ratingChanges = await fetchContestRatingChangesAPI(contestID);
+    onProgress?.(`Comparing virtual rank for ${contestName}...`);
     const ratedRankByHandle = new Map(
       ratingChanges.map((change) => [change.handle.toLowerCase(), change.rank])
     );
