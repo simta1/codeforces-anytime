@@ -17,15 +17,24 @@ export interface ContestData {
   rating: number;
 }
 
+type ProgressCallback = (message: string) => void;
+
 const baseRating = 500;
 const ratingRange = 5000;
 let contestants: Contestant[];
 let loseProbabilities: number[][];
 let ratingToSeeds: number[];
 
+const yieldToBrowser = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+
 export const calculateMyRating = async (
-  contestData: ContestData
+  contestData: ContestData,
+  onProgress?: ProgressCallback
 ): Promise<{ nextRating: number; performance: number }> => {
+  onProgress?.('Loading official rating changes...');
   contestants = new Array<Contestant>();
   await fetchContestants(contestData.contestID).catch((err) => {
     throw err;
@@ -34,6 +43,8 @@ export const calculateMyRating = async (
     throw new Error();
   }
 
+  onProgress?.(`Preparing ${contestants.length} rated contestants...`);
+  await yieldToBrowser();
   const index = contestData.rank;
   contestants.splice(index, 0, {
     handle: contestData.handle,
@@ -45,13 +56,19 @@ export const calculateMyRating = async (
     calcedDelta: 0,
   });
   assignRanks();
-  calcLoseProbabilities(); // bottle neck
-  calcRatingToSeeds();
+  await calcLoseProbabilities(onProgress); // bottle neck
+  await calcRatingToSeeds(onProgress);
+  onProgress?.('Calculating contestant seeds...');
+  await yieldToBrowser();
   calcContestantSeeds();
-  calcBaseRatingDeltas();
+  await calcBaseRatingDeltas(onProgress);
+  onProgress?.('Applying rating corrections...');
+  await yieldToBrowser();
   let correctedDelta = calcAllAverageRatingInc();
   correctedDelta += calcMajorAverageRatingInc();
 
+  onProgress?.('Calculating performance...');
+  await yieldToBrowser();
   const performance = calcPerformance(contestants[index].rank, correctedDelta);
   const nextRating =
     contestants[index].oldRating + contestants[index].calcedDelta;
@@ -89,16 +106,24 @@ const assignRanks = () => {
   }
 };
 
-const calcLoseProbabilities = () => {
+const calcLoseProbabilities = async (onProgress?: ProgressCallback) => {
   if (loseProbabilities) {
+    onProgress?.('Using cached rating probability table...');
+    await yieldToBrowser();
     return;
   }
+  onProgress?.('Building rating probability table...');
+  await yieldToBrowser();
   loseProbabilities = new Array<number[]>(ratingRange + 1);
   for (let i = 0; i <= ratingRange; i++) {
     loseProbabilities[i] = new Array<number>(ratingRange + 1);
     loseProbabilities[i].fill(0);
   }
   for (let i = 0; i <= ratingRange; i++) {
+    if (i % 250 === 0) {
+      onProgress?.(`Building rating probability table... ${i}/${ratingRange}`);
+      await yieldToBrowser();
+    }
     for (let j = i; j <= ratingRange; j++) {
       loseProbabilities[i][j] = calcEloLoseProbability(
         i - baseRating,
@@ -107,11 +132,19 @@ const calcLoseProbabilities = () => {
       loseProbabilities[j][i] = 1 - loseProbabilities[i][j];
     }
   }
+  onProgress?.('Building rating probability table... done');
+  await yieldToBrowser();
 };
 
-const calcRatingToSeeds = () => {
+const calcRatingToSeeds = async (onProgress?: ProgressCallback) => {
+  onProgress?.('Calculating expected ranks...');
+  await yieldToBrowser();
   ratingToSeeds = new Array<number>();
   for (let i = 0; i <= ratingRange; i++) {
+    if (i % 250 === 0) {
+      onProgress?.(`Calculating expected ranks... ${i}/${ratingRange}`);
+      await yieldToBrowser();
+    }
     let seed = 1.0;
     for (const contestant of contestants) {
       seed += loseProbabilities[i][contestant.oldRating + baseRating];
@@ -126,8 +159,15 @@ const calcContestantSeeds = () => {
   }
 };
 
-const calcBaseRatingDeltas = () => {
-  for (const contestant of contestants) {
+const calcBaseRatingDeltas = async (onProgress?: ProgressCallback) => {
+  onProgress?.('Calculating rating deltas...');
+  await yieldToBrowser();
+  for (let i = 0; i < contestants.length; i++) {
+    if (i % 250 === 0) {
+      onProgress?.(`Calculating rating deltas... ${i}/${contestants.length}`);
+      await yieldToBrowser();
+    }
+    const contestant = contestants[i];
     const midRank: number = Math.sqrt(contestant.rank * contestant.seed);
 
     const targetRating = calcRatingToRank(midRank, contestant.oldRating);

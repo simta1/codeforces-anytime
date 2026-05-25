@@ -25,6 +25,7 @@ const UpdateProfilePage: React.FC = () => {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [handleValidity, setHandleValidity] = useState(true);
+  const [handleError, setHandleError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
 
@@ -39,7 +40,14 @@ const UpdateProfilePage: React.FC = () => {
   }, [profile.handle]);
 
   const onButtonClick = useCallback(async () => {
-    const savedProfile = getSavedProfile(handle);
+    const normalizedHandle = handle.trim();
+    if (!normalizedHandle) {
+      setHandleValidity(false);
+      setHandleError('Enter a Codeforces handle.');
+      return;
+    }
+
+    const savedProfile = getSavedProfile(normalizedHandle);
     if (savedProfile) {
       setActiveHandle(savedProfile.handle);
       history.push(`/users/${savedProfile.handle}`);
@@ -48,12 +56,24 @@ const UpdateProfilePage: React.FC = () => {
 
     setIsLoading(true);
     setLoadingMessage('Starting profile setup...');
-    const nextProfile = await createInitialProfile(handle, setLoadingMessage)
+    const nextProfile = await createInitialProfile(
+      normalizedHandle,
+      setLoadingMessage
+    )
       .then((createdProfile) => {
         setLoadingMessage('Done.');
         return createdProfile;
       })
-      .catch(() => null);
+      .catch((error) => {
+        if (error instanceof Error && error.message === 'Invalid handle') {
+          setHandleError('Invalid handle!');
+        } else {
+          setHandleError(
+            'Could not check this handle. The Codeforces API request failed, so please try again.'
+          );
+        }
+        return null;
+      });
     setIsLoading(false);
     setLoadingMessage('');
     if (!nextProfile) {
@@ -61,6 +81,7 @@ const UpdateProfilePage: React.FC = () => {
       return;
     }
     setHandleValidity(true);
+    setHandleError('');
     setInitialProfile(nextProfile);
     setModalOpen(true);
   }, [handle, history]);
@@ -101,11 +122,15 @@ const UpdateProfilePage: React.FC = () => {
           error={
             handleValidity
               ? false
-              : { content: 'Invalid handle!', pointing: 'above' }
+              : { content: handleError || 'Invalid handle!', pointing: 'above' }
           }
           label="Handle"
           value={handle}
-          onChange={(e) => setHandle(e.target.value)}
+          onChange={(e) => {
+            setHandle(e.target.value);
+            setHandleValidity(true);
+            setHandleError('');
+          }}
         />
         <Form.Button color="green" onClick={() => onButtonClick()}>
           OK

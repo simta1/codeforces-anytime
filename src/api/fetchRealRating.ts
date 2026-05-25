@@ -6,6 +6,10 @@ export interface CodeforcesUserInfo {
   registrationTimeSeconds?: number;
 }
 
+const isHandleNotFoundError = (error: unknown) => {
+  return error instanceof Error && /not found/i.test(error.message);
+};
+
 export const fetchUserInfo = async (
   handle: string
 ): Promise<CodeforcesUserInfo | null> => {
@@ -19,6 +23,9 @@ export const fetchUserInfo = async (
     }
     return user;
   } catch (e) {
+    if (!isHandleNotFoundError(e)) {
+      throw e;
+    }
     return null;
   }
 };

@@ -131,17 +131,21 @@ export const updateContestRecords =
               submissions: contest.submissions,
             });
           processedContestCount++;
-          dispatch(
-            changeRatingUpdateMessage(
-              `Calculating rating for ${contestName} (${processedContestCount}/${totalContestCount})...`
-            )
-          );
-          const { nextRating, performance } = await calculateMyRating({
-            contestID: contest.id,
-            handle,
-            rank: ratingRank,
-            rating: oldRating,
-          }).catch((e) => {
+          const ratingProgressPrefix = `Calculating rating for ${contestName} (${processedContestCount}/${totalContestCount})...`;
+          dispatch(changeRatingUpdateMessage(ratingProgressPrefix));
+          const { nextRating, performance } = await calculateMyRating(
+            {
+              contestID: contest.id,
+              handle,
+              rank: ratingRank,
+              rating: oldRating,
+            },
+            (message) => {
+              dispatch(
+                changeRatingUpdateMessage(`${ratingProgressPrefix} ${message}`)
+              );
+            }
+          ).catch((e) => {
             return { nextRating: null, performance: null };
           });
           if (nextRating == null || performance == null) {
